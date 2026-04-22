@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreetPaws India — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #0a7c5c;
+    --teal-light: #e6f7f2;
+    --teal-mid: #1aaa80;
+    --amber: #c47d0e;
+    --amber-light: #fff8ec;
+    --red: #c0392b;
+    --red-light: #fdf0ee;
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e2e1db;
+    --radius: 14px;
+    --shadow: 0 2px 16px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--teal); letter-spacing: -0.5px; }
+  .logo span { color: var(--text); }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; background: none; color: var(--muted);
+    transition: all 0.15s;
+  }
+  .nav-tab.active { background: var(--teal-light); color: var(--teal); }
+  .nav-tab:hover:not(.active) { background: var(--bg); color: var(--text); }
+  .demo-badge {
+    background: var(--amber-light); color: var(--amber);
+    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+    border: 1px solid #f0d090;
+  }
+
+  /* VIEWS */
+  .view { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-green .stat-value { color: var(--teal); }
+  .stat-amber .stat-value { color: var(--amber); }
+  .stat-red .stat-value { color: var(--red); }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .section-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  /* MAP AREA */
+  .map-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+  .map-container {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow); position: relative;
+    height: 440px;
+  }
+  .map-svg { width: 100%; height: 100%; }
+  .map-legend {
+    position: absolute; bottom: 16px; left: 16px;
+    background: rgba(255,255,255,0.95); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; font-size: 12px;
+    backdrop-filter: blur(4px);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .legend-item:last-child { margin-bottom: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ZONE PANEL */
+  .zone-panel { display: flex; flex-direction: column; gap: 10px; }
+  .zone-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: var(--shadow);
+  }
+  .zone-card:hover { border-color: var(--teal); transform: translateY(-1px); }
+  .zone-card.selected { border-color: var(--teal); background: var(--teal-light); }
+  .zone-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .zone-bar-bg { background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 6px; }
+  .zone-bar { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .zone-stats { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .priority-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; margin-left: 8px;
+  }
+  .p-critical { background: var(--red-light); color: var(--red); }
+  .p-high { background: #fff3e0; color: #e65100; }
+  .p-medium { background: var(--amber-light); color: var(--amber); }
+  .p-low { background: var(--teal-light); color: var(--teal); }
+
+  /* DOG LIST */
+  .dog-list-layout { display: grid; grid-template-columns: 1fr 360px; gap: 16px; }
+  .dog-table-wrap {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .dog-table { width: 100%; border-collapse: collapse; }
+  .dog-table th {
+    background: var(--bg); font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted);
+    padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border);
+  }
+  .dog-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .dog-table tr:last-child td { border-bottom: none; }
+  .dog-table tr.clickable { cursor: pointer; transition: background 0.1s; }
+  .dog-table tr.clickable:hover { background: var(--teal-light); }
+  .dog-table tr.selected-row { background: var(--teal-light); }
+  .dog-id { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--teal); }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .s-stray { background: var(--red-light); color: var(--red); }
+  .s-neutered { background: var(--teal-light); color: var(--teal); }
+  .s-captured { background: var(--amber-light); color: var(--amber); }
+  .s-review { background: #f0f0ff; color: #5050c0; }
+
+  /* DOG DETAIL PANEL */
+  .dog-detail {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .dog-detail-header { margin-bottom: 16px; }
+  .dog-detail-id { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--teal); }
+  .dog-detail-status { margin-top: 4px; }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 16px; }
+  .photo-thumb {
+    aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .photo-thumb svg { width: 100%; height: 100%; }
+  .detail-row { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--muted); }
+  .detail-val { font-weight: 500; }
+  .timeline { margin-top: 16px; }
+  .tl-item { display: flex; gap: 10px; padding: 8px 0; position: relative; }
+  .tl-item:not(:last-child)::before {
+    content: ''; position: absolute; left: 7px; top: 22px;
+    width: 2px; height: calc(100% - 10px); background: var(--border);
+  }
+  .tl-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+  .tl-text { font-size: 12px; }
+  .tl-date { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  /* REVIEW QUEUE */
+  .review-layout { display: flex; flex-direction: column; gap: 16px; }
+  .review-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .review-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .review-title { font-weight: 600; font-size: 15px; }
+  .review-conf { font-size: 12px; color: var(--muted); }
+  .review-photos { display: grid; grid-template-columns: 1fr 60px 1fr; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .review-photo {
+    border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
+    aspect-ratio: 1;
+  }
+  .review-photo svg { width: 100%; height: 100%; }
+  .vs-badge {
+    text-align: center; font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 18px; color: var(--muted);
+  }
+  .review-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; font-size: 12px; }
+  .meta-box { background: var(--bg); border-radius: 8px; padding: 8px 12px; }
+  .meta-label { color: var(--muted); margin-bottom: 2px; }
+  .meta-val { font-weight: 600; }
+  .review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-same {
+    padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 2px solid var(--teal); background: var(--teal-light);
+    color: var(--teal); transition: all 0.15s;
+  }
+  .btn-same:hover { background: var(--teal); color: white; }
+  .btn-diff {
+    padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 2px solid var(--border); background: white;
+    color: var(--muted); transition: all 0.15s;
+  }
+  .btn-diff:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+  .decided { opacity: 0.5; pointer-events: none; position: relative; }
+  .decided-overlay {
+    text-align: center; padding: 8px; border-radius: 8px;
+    font-weight: 600; font-size: 13px; margin-top: 8px;
+  }
+  .decided-same { background: var(--teal-light); color: var(--teal); }
+  .decided-diff { background: var(--red-light); color: var(--red); }
+
+  /* SUBMIT FLOW */
+  .submit-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+  .phone-frame {
+    background: #1a1a18; border-radius: 36px; padding: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    position: relative; overflow: hidden;
+  }
+  .phone-screen {
+    background: #0a0a08; border-radius: 26px; overflow: hidden;
+    height: 580px; position: relative;
+  }
+  .app-screen { position: absolute; inset: 0; transition: opacity 0.3s, transform 0.3s; }
+  .app-screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* App screens */
+  .cam-screen { background: #0a0a08; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+  .cam-viewfinder { width: 100%; height: 380px; background: #111; position: relative; overflow: hidden; }
+  .cam-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .cam-frame { width: 200px; height: 200px; border: 2px solid rgba(255,255,255,0.5); border-radius: 12px; }
+  .cam-dog-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .cam-bottom { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+  .cam-btn {
+    width: 64px; height: 64px; border-radius: 50%; border: 3px solid white;
+    background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: transform 0.1s; box-shadow: 0 0 0 8px rgba(255,255,255,0.15);
+  }
+  .cam-btn:hover { transform: scale(0.95); }
+  .cam-gps { color: rgba(255,255,255,0.7); font-size: 11px; display: flex; align-items: center; gap: 4px; }
+
+  .processing-screen { background: #0a0a08; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 30px; }
+  .processing-spinner { width: 60px; height: 60px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--teal-mid); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .processing-steps { width: 100%; }
+  .proc-step { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; color: rgba(255,255,255,0.5); }
+  .proc-step.done { color: var(--teal-mid); }
+  .proc-step.active { color: white; }
+  .proc-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; background: rgba(255,255,255,0.1); flex-shrink: 0; }
+  .proc-step.done .proc-icon { background: var(--teal); color: white; }
+  .proc-step.active .proc-icon { background: rgba(255,255,255,0.2); color: white; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .result-screen { background: #0a0a08; height: 100%; display: flex; flex-direction: column; padding: 24px; }
+  .result-header { color: white; text-align: center; margin-bottom: 16px; }
+  .result-icon { font-size: 36px; margin-bottom: 8px; }
+  .result-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: white; }
+  .result-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .result-card { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .result-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+  .result-key { color: rgba(255,255,255,0.5); }
+  .result-val { color: white; font-weight: 500; }
+  .result-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .result-new { background: rgba(26,170,128,0.2); color: var(--teal-mid); }
+  .result-matched { background: rgba(196,125,14,0.2); color: #f0a030; }
+  .submit-again-btn {
+    margin-top: auto; background: var(--teal-mid); color: white; border: none;
+    border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 600;
+    cursor: pointer; width: 100%; font-family: 'DM Sans', sans-serif;
+  }
+
+  /* RIGHT SIDE GUIDE */
+  .demo-guide { display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
+  .guide-step {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: var(--shadow);
+  }
+  .guide-step:hover { border-color: var(--teal); }
+  .guide-step.active-step { border-color: var(--teal); background: var(--teal-light); }
+  .guide-num { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 800; color: var(--teal); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .guide-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .guide-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .flow-arrow { text-align: center; color: var(--muted); font-size: 18px; }
+
+  /* REPORT VIEW */
+  .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .report-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .rc-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  .rc-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; }
+  .rc-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .progress-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+  .prog-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .prog-row:last-child { border-bottom: none; }
+  .prog-name { font-size: 13px; font-weight: 500; width: 150px; flex-shrink: 0; }
+  .prog-bar-bg { flex: 1; background: var(--bg); border-radius: 4px; height: 8px; overflow: hidden; }
+  .prog-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .prog-pct { font-size: 12px; font-weight: 600; width: 40px; text-align: right; }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .map-layout, .dog-list-layout, .submit-layout { grid-template-columns: 1fr; }
+    .phone-frame { max-width: 320px; margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Street<span>Paws</span> India</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="switchTab('dogs')">Dog Profiles</button>
+    <button class="nav-tab" onclick="switchTab('review')">Review Queue <span id="queue-badge" style="background:var(--red-light);color:var(--red);font-size:10px;padding:1px 6px;border-radius:10px;margin-left:2px;">3</span></button>
+    <button class="nav-tab" onclick="switchTab('submit')">Mobile App</button>
+    <button class="nav-tab" onclick="switchTab('report')">Reports</button>
+  </div>
+  <div class="demo-badge">LIVE DEMO</div>
+</nav>
+
+<!-- ========== DASHBOARD ========== -->
+<div class="view active" id="view-dashboard">
+  <div class="stats-row">
+    <div class="stat-card stat-amber">
+      <div class="stat-label">Total Dogs Mapped</div>
+      <div class="stat-value" id="total-dogs">247</div>
+      <div class="stat-sub">In T. Nagar pilot zone</div>
+    </div>
+    <div class="stat-card stat-green">
+      <div class="stat-label">Neutered & Released</div>
+      <div class="stat-value" id="neutered-count">143</div>
+      <div class="stat-sub">57.9% coverage</div>
+    </div>
+    <div class="stat-card stat-red">
+      <div class="stat-label">Pending Capture</div>
+      <div class="stat-value" id="pending-count">104</div>
+      <div class="stat-sub">Unneutered dogs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Photos Submitted</div>
+      <div class="stat-value" style="color:var(--text)">1,842</div>
+      <div class="stat-sub">By 94 residents</div>
+    </div>
+  </div>
+
+  <div class="map-layout">
+    <div>
+      <div class="section-header">
+        <div>
+          <div class="section-title">Live Dog Map — T. Nagar, Chennai</div>
+          <div class="section-sub">Click a dog pin to view profile</div>
+        </div>
+      </div>
+      <div class="map-container">
+        <svg class="map-svg" viewBox="0 0 600 400" id="main-map">
+          <!-- Street grid background -->
+          <rect width="600" height="400" fill="#f0ede6"/>
+          <!-- Streets -->
+          <rect x="0" y="60" width="600" height="18" fill="#e8e4dc" rx="2"/>
+          <rect x="0" y="160" width="600" height="14" fill="#e8e4dc" rx="2"/>
+          <rect x="0" y="260" width="600" height="18" fill="#e8e4dc" rx="2"/>
+          <rect x="0" y="340" width="600" height="12" fill="#e8e4dc" rx="2"/>
+          <rect x="80" y="0" width="14" height="400" fill="#e8e4dc" rx="2"/>
+          <rect x="200" y="0" width="18" height="400" fill="#e8e4dc" rx="2"/>
+          <rect x="340" y="0" width="14" height="400" fill="#e8e4dc" rx="2"/>
+          <rect x="460" y="0" width="18" height="400" fill="#e8e4dc" rx="2"/>
+          <!-- Block fills -->
+          <rect x="95" y="80" width="100" height="75" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="215" y="80" width="120" height="75" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="355" y="80" width="100" height="75" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="95" y="180" width="100" height="75" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="215" y="180" width="120" height="75" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="355" y="180" width="100" height="75" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="95" y="280" width="100" height="55" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="215" y="280" width="120" height="55" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <rect x="355" y="280" width="100" height="55" fill="#e4e0d8" rx="4" opacity="0.7"/>
+          <!-- Street labels -->
+          <text x="50" y="57" fill="#b0ac9f" font-size="9" font-family="DM Sans">Usman Road</text>
+          <text x="50" y="157" fill="#b0ac9f" font-size="9" font-family="DM Sans">G.N. Chetty Rd</text>
+          <text x="50" y="258" fill="#b0ac9f" font-size="9" font-family="DM Sans">K.K. Nagar St</text>
+
+          <!-- Zone boundary -->
+          <rect x="30" y="30" width="540" height="350" fill="none" stroke="#0a7c5c" stroke-width="2" stroke-dasharray="8,4" rx="8" opacity="0.4"/>
+          <text x="38" y="26" fill="#0a7c5c" font-size="10" font-family="DM Sans" font-weight="600">T. Nagar Pilot Zone</text>
+
+          <!-- Dog pins: neutered (green) -->
+          <g id="pins"></g>
+        </svg>
+        <div class="map-legend">
+          <div class="legend-item"><div class="dot" style="background:#0a7c5c"></div> Neutered (143)</div>
+          <div class="legend-item"><div class="dot" style="background:#c0392b"></div> Unneutered (104)</div>
+          <div class="legend-item"><div class="dot" style="background:#c47d0e"></div> Under review (12)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone-panel">
+      <div class="section-header">
+        <div class="section-title">Zones</div>
+      </div>
+      <div id="zone-cards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DOG PROFILES ========== -->
+<div class="view" id="view-dogs">
+  <div class="dog-list-layout">
+    <div>
+      <div class="section-header">
+        <div>
+          <div class="section-title">Dog Profiles</div>
+          <div class="section-sub">247 dogs identified in T. Nagar</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <select id="status-filter" onchange="filterDogs()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:white;font-family:'DM Sans',sans-serif;">
+            <option value="">All status</option>
+            <option value="stray">Unneutered</option>
+            <option value="neutered">Neutered</option>
+            <option value="captured">Captured</option>
+          </select>
+        </div>
+      </div>
+      <div class="dog-table-wrap">
+        <table class="dog-table">
+          <thead>
+            <tr>
+              <th>Dog ID</th>
+              <th>Status</th>
+              <th>Zone</th>
+              <th>Last Seen</th>
+              <th>Sightings</th>
+            </tr>
+          </thead>
+          <tbody id="dog-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="dog-detail-panel">
+      <div class="empty-state">
+        <div class="empty-icon">🐕</div>
+        <div class="empty-text">Select a dog to view its profile</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== REVIEW QUEUE ========== -->
+<div class="view" id="view-review">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Human Review Queue</div>
+      <div class="section-sub">AI confidence 75%–92% — needs your decision</div>
+    </div>
+    <div style="font-size:13px;color:var(--muted)" id="queue-count">3 pending</div>
+  </div>
+  <div class="review-layout" id="review-cards"></div>
+</div>
+
+<!-- ========== MOBILE APP ========== -->
+<div class="view" id="view-submit">
+  <div class="submit-layout">
+    <div>
+      <div class="section-title" style="margin-bottom:16px">Citizen Mobile App</div>
+      <div class="phone-frame">
+        <div class="phone-screen">
+
+          <!-- CAMERA SCREEN -->
+          <div class="app-screen" id="screen-camera">
+            <div class="cam-screen">
+              <div class="cam-viewfinder">
+                <svg width="100%" height="100%" viewBox="0 0 300 320">
+                  <rect width="300" height="320" fill="#1a1a10"/>
+                  <!-- Simulated street scene -->
+                  <rect x="0" y="200" width="300" height="120" fill="#2a2a20"/>
+                  <rect x="0" y="200" width="300" height="8" fill="#3a3a28"/>
+                  <rect x="20" y="160" width="60" height="50" fill="#2a2820" rx="2"/>
+                  <rect x="220" y="140" width="70" height="70" fill="#2a2820" rx="2"/>
+                  <!-- Dog silhouette -->
+                  <g transform="translate(120, 150)">
+                    <ellipse cx="20" cy="28" rx="26" ry="14" fill="#4a4030"/>
+                    <circle cx="40" cy="20" r="12" fill="#4a4030"/>
+                    <rect x="6" y="34" width="6" height="16" rx="3" fill="#4a4030"/>
+                    <rect x="14" y="36" width="6" height="16" rx="3" fill="#4a4030"/>
+                    <rect x="28" y="36" width="6" height="14" rx="3" fill="#4a4030"/>
+                    <rect x="36" y="36" width="6" height="14" rx="3" fill="#4a4030"/>
+                    <ellipse cx="6" cy="28" rx="4" ry="6" fill="#4a4030"/>
+                    <path d="M46 18 Q56 14 54 22" stroke="#4a4030" stroke-width="3" fill="none" stroke-linecap="round"/>
+                  </g>
+                </svg>
+                <div class="cam-overlay">
+                  <div class="cam-frame"></div>
+                </div>
+              </div>
+              <div class="cam-bottom">
+                <div class="cam-gps">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  13.0827°N, 80.2707°E — Accuracy ±4m
+                </div>
+                <div class="cam-btn" onclick="startSubmit()">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="#1a1a18" stroke-width="2.5"/>
+                  </svg>
+                </div>
+                <div style="color:rgba(255,255,255,0.4);font-size:11px">Tap to report this dog</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PROCESSING SCREEN -->
+          <div class="app-screen hidden" id="screen-processing">
+            <div class="processing-screen">
+              <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-bottom:8px">Analysing photo...</div>
+              <div class="processing-spinner"></div>
+              <div class="processing-steps" id="proc-steps">
+                <div class="proc-step" id="ps1"><div class="proc-icon">1</div><span>Checking image quality</span></div>
+                <div class="proc-step" id="ps2"><div class="proc-icon">2</div><span>Detecting dog in frame</span></div>
+                <div class="proc-step" id="ps3"><div class="proc-icon">3</div><span>Extracting visual fingerprint</span></div>
+                <div class="proc-step" id="ps4"><div class="proc-icon">4</div><span>Searching 247 dog profiles</span></div>
+                <div class="proc-step" id="ps5"><div class="proc-icon">5</div><span>Checking ear notch...</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESULT SCREEN -->
+          <div class="app-screen hidden" id="screen-result">
+            <div class="result-screen">
+              <div class="result-header">
+                <div class="result-icon">✅</div>
+                <div class="result-title">Dog Identified!</div>
+                <div class="result-sub">Sighting added to database</div>
+              </div>
+              <div class="result-card">
+                <div class="result-row"><span class="result-key">Dog ID</span><span class="result-val" style="font-family:'Syne',sans-serif;color:#1aaa80">DOG-089</span></div>
+                <div class="result-row"><span class="result-key">Match confidence</span><span class="result-val">94.2%</span></div>
+                <div class="result-row"><span class="result-key">Status</span><span class="result-val"><span class="result-pill result-new">Unneutered — flagged for capture</span></span></div>
+                <div class="result-row"><span class="result-key">Previous sightings</span><span class="result-val">6 sightings by 4 residents</span></div>
+                <div class="result-row"><span class="result-key">Ear notch</span><span class="result-val">Not detected</span></div>
+              </div>
+              <div class="result-card">
+                <div class="result-row"><span class="result-key">GPS recorded</span><span class="result-val">13.0827°N, 80.2707°E</span></div>
+                <div class="result-row"><span class="result-key">Zone</span><span class="result-val">T. Nagar — Ward 12</span></div>
+                <div class="result-row"><span class="result-key">Submitted</span><span class="result-val">Just now</span></div>
+              </div>
+              <div style="color:rgba(255,255,255,0.4);font-size:12px;text-align:center;margin-top:8px">
+                You've helped map 12 dogs in your area 🐾
+              </div>
+              <button class="submit-again-btn" onclick="resetSubmit()">Report Another Dog</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-guide">
+      <div class="guide-step active-step" id="gs1">
+        <div class="guide-num">Step 1</div>
+        <div class="guide-title">Resident opens camera</div>
+        <div class="guide-desc">Any resident taps the camera button. GPS is automatically recorded. No account setup needed — just a phone number via OTP.</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="guide-step" id="gs2">
+        <div class="guide-num">Step 2</div>
+        <div class="guide-title">AI processes the photo</div>
+        <div class="guide-desc">Server checks image quality, detects the dog, extracts a 128-number visual fingerprint, and searches all existing profiles for a match.</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="guide-step" id="gs3">
+        <div class="guide-num">Step 3</div>
+        <div class="guide-title">Dog profile updated</div>
+        <div class="guide-desc">If matched (>92% confidence), the existing dog's sighting history is updated. If no match, a new dog profile is created automatically.</div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="guide-step" id="gs4">
+        <div class="guide-num">Step 4</div>
+        <div class="guide-title">NGO capture team notified</div>
+        <div class="guide-desc">The dog appears on the NGO dashboard map as a priority capture target. Unneutered dogs in high-density zones are ranked first.</div>
+      </div>
+      <div style="margin-top:8px;padding:14px;background:var(--teal-light);border-radius:10px;border:1px solid #9fe1cb;">
+        <div style="font-size:12px;font-weight:600;color:var(--teal);margin-bottom:4px">👆 Try it</div>
+        <div style="font-size:12px;color:var(--teal)">Tap the camera button on the phone to see the full AI flow.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== REPORTS ========== -->
+<div class="view" id="view-report">
+  <div class="section-header">
+    <div>
+      <div class="section-title">ABC Programme Coverage Report</div>
+      <div class="section-sub">T. Nagar Pilot — April 2026 — For ABC Monitoring Committee</div>
+    </div>
+    <button onclick="alert('In the full system, this exports a PDF report formatted for ABC Monitoring Committee submissions as mandated by ABC Rules 2023.')" style="padding:8px 16px;background:var(--teal);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Export PDF Report</button>
+  </div>
+  <div class="report-grid">
+    <div class="report-card">
+      <div class="rc-label">Total Population</div>
+      <div class="rc-value" style="color:var(--text)">247</div>
+      <div class="rc-sub">Identified by AI profiling</div>
+    </div>
+    <div class="report-card">
+      <div class="rc-label">Neutered Coverage</div>
+      <div class="rc-value" style="color:var(--teal)">57.9%</div>
+      <div class="rc-sub">WHO target: 70%</div>
+    </div>
+    <div class="report-card">
+      <div class="rc-label">Gap to Target</div>
+      <div class="rc-value" style="color:var(--amber)">30 dogs</div>
+      <div class="rc-sub">To reach 70% threshold</div>
+    </div>
+    <div class="report-card">
+      <div class="rc-label">Dog Bites Reported</div>
+      <div class="rc-value" style="color:var(--red)">8</div>
+      <div class="rc-sub">Down from 14 (same period last year)</div>
+    </div>
+    <div class="report-card">
+      <div class="rc-label">Avg. Time to Capture</div>
+      <div class="rc-value" style="color:var(--text)">4.2 days</div>
+      <div class="rc-sub">After first sighting flagged</div>
+    </div>
+    <div class="report-card">
+      <div class="rc-label">Citizens Contributing</div>
+      <div class="rc-value" style="color:var(--teal)">94</div>
+      <div class="rc-sub">Active in last 30 days</div>
+    </div>
+  </div>
+  <div class="progress-section">
+    <div class="section-header" style="margin-bottom:8px">
+      <div class="section-title" style="font-size:16px">Coverage by Ward</div>
+    </div>
+    <div id="ward-progress"></div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const zones = [
+  { name: 'Ward 12 — Usman Rd', dogs: 68, neutered: 52, priority: 'low' },
+  { name: 'Ward 13 — G.N. Chetty', dogs: 74, neutered: 39, priority: 'high' },
+  { name: 'Ward 14 — K.K. Nagar', dogs: 55, neutered: 22, priority: 'critical' },
+  { name: 'Ward 15 — Panagal Park', dogs: 50, neutered: 30, priority: 'medium' },
+];
+
+const dogs = [
+  { id: 'DOG-001', status: 'neutered', zone: 'Ward 12', last_seen: '2 hrs ago', sightings: 18, lat: 100, lng: 90, notes: 'Friendly, stays near fruit market' },
+  { id: 'DOG-002', status: 'stray', zone: 'Ward 13', last_seen: '4 hrs ago', sightings: 7, lat: 260, lng: 135, notes: 'Seen with another dog. Both untagged.' },
+  { id: 'DOG-003', status: 'neutered', zone: 'Ward 12', last_seen: '1 day ago', sightings: 22, lat: 140, lng: 220, notes: 'V-notch clearly visible. Released March 2026.' },
+  { id: 'DOG-004', status: 'captured', zone: 'Ward 14', last_seen: '3 days ago', sightings: 5, lat: 390, lng: 220, notes: 'Currently at Blue Cross shelter. Surgery scheduled tomorrow.' },
+  { id: 'DOG-005', status: 'stray', zone: 'Ward 14', last_seen: '6 hrs ago', sightings: 11, lat: 420, lng: 130, notes: 'Limping on rear left leg. Possibly injured.' },
+  { id: 'DOG-006', status: 'neutered', zone: 'Ward 15', last_seen: '5 hrs ago', sightings: 14, lat: 300, lng: 300, notes: 'Released January 2026. Regular sightings near temple.' },
+  { id: 'DOG-007', status: 'stray', zone: 'Ward 13', last_seen: '1 hr ago', sightings: 3, lat: 250, lng: 310, notes: 'New profile. First identified this week.' },
+  { id: 'DOG-008', status: 'neutered', zone: 'Ward 12', last_seen: '8 hrs ago', sightings: 9, lat: 130, lng: 310, notes: 'Ear notch confirmed in 3 photos.' },
+];
+
+const reviewItems = [
+  {
+    id: 'REV-041', conf: 81.4,
+    new_photo: { zone: 'Ward 13', time: 'Today, 2:14 PM', dist: '—' },
+    existing: { dog_id: 'DOG-012', sightings: 9, last: 'Yesterday, 5pm' },
+    decided: null
+  },
+  {
+    id: 'REV-042', conf: 78.9,
+    new_photo: { zone: 'Ward 14', time: 'Today, 11:03 AM', dist: '320m apart' },
+    existing: { dog_id: 'DOG-031', sightings: 4, last: 'Today, 8am' },
+    decided: null
+  },
+  {
+    id: 'REV-043', conf: 88.1,
+    new_photo: { zone: 'Ward 12', time: 'Yesterday, 4:45 PM', dist: '80m apart' },
+    existing: { dog_id: 'DOG-007', sightings: 3, last: 'Yesterday, 1pm' },
+    decided: null
+  }
+];
+
+// ===== RENDER MAP PINS =====
+function renderMapPins() {
+  const g = document.getElementById('pins');
+  dogs.forEach(d => {
+    const color = d.status === 'neutered' ? '#0a7c5c' : d.status === 'captured' ? '#c47d0e' : '#c0392b';
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', d.lat);
+    circle.setAttribute('cy', d.lng);
+    circle.setAttribute('r', 7);
+    circle.setAttribute('fill', color);
+    circle.setAttribute('stroke', 'white');
+    circle.setAttribute('stroke-width', '2');
+    circle.style.cursor = 'pointer';
+    circle.addEventListener('click', () => { switchTab('dogs'); selectDog(d.id); });
+    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+    title.textContent = d.id + ' — ' + d.status;
+    circle.appendChild(title);
+    g.appendChild(circle);
+  });
+}
+
+// ===== RENDER ZONE CARDS =====
+function renderZones() {
+  const wrap = document.getElementById('zone-cards');
+  wrap.innerHTML = '';
+  zones.forEach((z, i) => {
+    const pct = Math.round((z.neutered / z.dogs) * 100);
+    const barColor = pct >= 70 ? '#0a7c5c' : pct >= 40 ? '#c47d0e' : '#c0392b';
+    wrap.innerHTML += `
+      <div class="zone-card ${i===0?'selected':''}" onclick="selectZone(this)">
+        <div class="zone-name">${z.name} <span class="priority-badge p-${z.priority}">${z.priority}</span></div>
+        <div class="zone-bar-bg"><div class="zone-bar" style="width:${pct}%;background:${barColor}"></div></div>
+        <div class="zone-stats"><span>${z.neutered}/${z.dogs} neutered</span><span style="font-weight:600;color:${barColor}">${pct}%</span></div>
+      </div>`;
+  });
+}
+
+function selectZone(el) {
+  document.querySelectorAll('.zone-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ===== RENDER DOG TABLE =====
+let selectedDogId = null;
+function renderDogTable(filter = '') {
+  const tbody = document.getElementById('dog-tbody');
+  tbody.innerHTML = '';
+  const filtered = filter ? dogs.filter(d => d.status === filter) : dogs;
+  filtered.forEach(d => {
+    const statusClass = { neutered: 's-neutered', stray: 's-stray', captured: 's-captured' }[d.status] || 's-review';
+    const statusLabel = { neutered: '✓ Neutered', stray: 'Unneutered', captured: 'Captured' }[d.status] || d.status;
+    const row = document.createElement('tr');
+    row.className = 'clickable' + (d.id === selectedDogId ? ' selected-row' : '');
+    row.innerHTML = `
+      <td><span class="dog-id">${d.id}</span></td>
+      <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${d.zone}</td>
+      <td style="font-size:12px;color:var(--muted)">${d.last_seen}</td>
+      <td style="font-size:13px;font-weight:500">${d.sightings}</td>`;
+    row.onclick = () => selectDog(d.id);
+    tbody.appendChild(row);
+  });
+}
+
+function filterDogs() {
+  const val = document.getElementById('status-filter').value;
+  renderDogTable(val);
+}
+
+function selectDog(id) {
+  selectedDogId = id;
+  const d = dogs.find(x => x.id === id);
+  if (!d) return;
+  renderDogTable(document.getElementById('status-filter').value);
+
+  const statusClass = { neutered: 's-neutered', stray: 's-stray', captured: 's-captured' }[d.status] || 's-review';
+  const statusLabel = { neutered: '✓ Neutered & Released', stray: 'Unneutered — awaiting capture', captured: 'Captured — at shelter' }[d.status] || d.status;
+  const tlColor = { neutered: '#0a7c5c', stray: '#c0392b', captured: '#c47d0e' }[d.status];
+
+  const dogColors = ['#c8a882','#8a7060','#b0956e','#7a6248','#d4b896'];
+  const col = dogColors[parseInt(id.replace('DOG-','')) % dogColors.length];
+
+  document.getElementById('dog-detail-panel').innerHTML = `
+    <div class="dog-detail">
+      <div class="dog-detail-header">
+        <div class="dog-detail-id">${d.id}</div>
+        <div class="dog-detail-status"><span class="status-pill ${statusClass}">${statusLabel}</span></div>
+      </div>
+      <div class="photo-grid">
+        ${[...Array(6)].map((_,i) => `<div class="photo-thumb">
+          <svg viewBox="0 0 80 80"><rect width="80" height="80" fill="#f0ede6"/>
+          <rect x="0" y="50" width="80" height="30" fill="#e4e0d8"/>
+          <ellipse cx="${30+i*3}" cy="42" rx="18" ry="10" fill="${col}"/>
+          <circle cx="${44+i*2}" cy="35" r="9" fill="${col}"/>
+          <rect cx="20" cy="52" width="4" height="10" rx="2" fill="${col}" x="20" y="50"/>
+          <rect x="26" y="51" width="4" height="10" rx="2" fill="${col}"/>
+          <rect x="36" y="51" width="4" height="9" rx="2" fill="${col}"/>
+          </svg></div>`).join('')}
+      </div>
+      <div class="detail-row"><span class="detail-key">Zone</span><span class="detail-val">${d.zone}</span></div>
+      <div class="detail-row"><span class="detail-key">Total sightings</span><span class="detail-val">${d.sightings} photos by ${Math.max(2, Math.floor(d.sightings/3))} people</span></div>
+      <div class="detail-row"><span class="detail-key">Last seen</span><span class="detail-val">${d.last_seen}</span></div>
+      <div class="detail-row"><span class="detail-key">Ear notch</span><span class="detail-val">${d.status==='neutered'?'Detected ✓':'Not detected'}</span></div>
+      <div class="detail-row"><span class="detail-key">Notes</span><span class="detail-val" style="font-size:12px;color:var(--muted)">${d.notes}</span></div>
+      <div class="timeline">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">STATUS HISTORY</div>
+        ${d.status==='neutered'?`
+        <div class="tl-item"><div class="tl-dot" style="background:#0a7c5c"></div><div><div class="tl-text">Neutered & released</div><div class="tl-date">March 14, 2026 — Blue Cross of India</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:#c47d0e"></div><div><div class="tl-text">Captured by field team</div><div class="tl-date">March 12, 2026</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:#c0392b"></div><div><div class="tl-text">Profile created (first sighting)</div><div class="tl-date">February 28, 2026</div></div></div>
+        `:d.status==='captured'?`
+        <div class="tl-item"><div class="tl-dot" style="background:#c47d0e"></div><div><div class="tl-text">Captured by field team</div><div class="tl-date">April 8, 2026</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:#c0392b"></div><div><div class="tl-text">Flagged as capture priority</div><div class="tl-date">April 3, 2026 — 5 sightings in zone</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:#c0392b"></div><div><div class="tl-text">Profile created</div><div class="tl-date">March 20, 2026</div></div></div>
+        `:`
+        <div class="tl-item"><div class="tl-dot" style="background:#c0392b"></div><div><div class="tl-text">Sighting confirmed</div><div class="tl-date">${d.last_seen}</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:#c0392b"></div><div><div class="tl-text">Profile created (first sighting)</div><div class="tl-date">First identified this month</div></div></div>
+        `}
+      </div>
+    </div>`;
+}
+
+// ===== RENDER REVIEW QUEUE =====
+function renderReviewQueue() {
+  const wrap = document.getElementById('review-cards');
+  const pending = reviewItems.filter(r => !r.decided).length;
+  document.getElementById('queue-count').textContent = pending + ' pending';
+  document.getElementById('queue-badge').textContent = pending;
+
+  wrap.innerHTML = '';
+  reviewItems.forEach((r, i) => {
+    const dogCol1 = ['#b89070','#8a6050','#c0a080'][i];
+    const dogCol2 = ['#7a8090','#605868','#a09080'][i];
+    wrap.innerHTML += `
+      <div class="review-card ${r.decided?'decided':''}" id="rc-${i}">
+        <div class="review-top">
+          <div>
+            <div class="review-title">New sighting vs existing profile</div>
+            <div class="review-conf">AI confidence: ${r.conf}% — needs human decision</div>
+          </div>
+          <span style="background:var(--amber-light);color:var(--amber);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px">${r.id}</span>
+        </div>
+        <div class="review-photos">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">NEW SIGHTING</div>
+            <div class="review-photo">
+              <svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#f0ede6"/>
+              <rect x="0" y="75" width="120" height="45" fill="#e8e4dc"/>
+              <ellipse cx="55" cy="68" rx="28" ry="14" fill="${dogCol1}"/>
+              <circle cx="76" cy="56" r="16" fill="${dogCol1}"/>
+              <rect x="34" y="78" width="7" height="18" rx="3" fill="${dogCol1}"/>
+              <rect x="44" y="80" width="7" height="18" rx="3" fill="${dogCol1}"/>
+              <rect x="62" y="80" width="7" height="16" rx="3" fill="${dogCol1}"/>
+              <rect x="72" y="80" width="7" height="16" rx="3" fill="${dogCol1}"/>
+              </svg>
+            </div>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">PROFILE: ${r.existing.dog_id}</div>
+            <div class="review-photo">
+              <svg viewBox="0 0 120 120"><rect width="120" height="120" fill="#eee8e0"/>
+              <rect x="0" y="70" width="120" height="50" fill="#e0dcd4"/>
+              <ellipse cx="50" cy="64" rx="26" ry="13" fill="${dogCol2}"/>
+              <circle cx="70" cy="53" r="15" fill="${dogCol2}"/>
+              <rect x="30" y="73" width="7" height="17" rx="3" fill="${dogCol2}"/>
+              <rect x="40" y="75" width="7" height="17" rx="3" fill="${dogCol2}"/>
+              <rect x="58" y="75" width="7" height="15" rx="3" fill="${dogCol2}"/>
+              <rect x="68" y="75" width="7" height="15" rx="3" fill="${dogCol2}"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="review-meta">
+          <div class="meta-box"><div class="meta-label">NEW PHOTO LOCATION</div><div class="meta-val">${r.new_photo.zone}</div></div>
+          <div class="meta-box"><div class="meta-label">PROFILE LAST SEEN</div><div class="meta-val">${r.existing.last}</div></div>
+          <div class="meta-box"><div class="meta-label">SUBMITTED</div><div class="meta-val">${r.new_photo.time}</div></div>
+          <div class="meta-box"><div class="meta-label">DISTANCE</div><div class="meta-val">${r.new_photo.dist}</div></div>
+        </div>
+        ${r.decided ? `<div class="decided-overlay ${r.decided==='same'?'decided-same':'decided-diff'}">${r.decided==='same'?'✓ Marked as same dog — profile updated':'✕ Marked as different — new profile created'}</div>` :
+        `<div class="review-actions">
+          <button class="btn-same" onclick="decide(${i},'same')">✓ Same dog — merge</button>
+          <button class="btn-diff" onclick="decide(${i},'diff')">✕ Different dog</button>
+        </div>`}
+      </div>`;
+  });
+}
+
+function decide(i, choice) {
+  reviewItems[i].decided = choice;
+  renderReviewQueue();
+}
+
+// ===== MOBILE APP FLOW =====
+let submitTimer = null;
+function startSubmit() {
+  document.getElementById('screen-camera').classList.add('hidden');
+  document.getElementById('screen-processing').classList.remove('hidden');
+  ['gs1','gs2','gs3','gs4'].forEach(id => document.getElementById(id).classList.remove('active-step'));
+  document.getElementById('gs2').classList.add('active-step');
+
+  const steps = ['ps1','ps2','ps3','ps4','ps5'];
+  let current = 0;
+  steps.forEach(s => {
+    const el = document.getElementById(s);
+    el.className = 'proc-step';
+  });
+
+  function nextStep() {
+    if (current > 0) {
+      document.getElementById(steps[current-1]).className = 'proc-step done';
+      document.getElementById(steps[current-1]).querySelector('.proc-icon').textContent = '✓';
+    }
+    if (current < steps.length) {
+      document.getElementById(steps[current]).className = 'proc-step active';
+      current++;
+      if (current === 3) document.getElementById('gs3').classList.add('active-step');
+      if (current === 5) document.getElementById('gs4').classList.add('active-step');
+      submitTimer = setTimeout(nextStep, 700);
+    } else {
+      submitTimer = setTimeout(() => {
+        document.getElementById('screen-processing').classList.add('hidden');
+        document.getElementById('screen-result').classList.remove('hidden');
+      }, 500);
+    }
+  }
+  nextStep();
+}
+
+function resetSubmit() {
+  if (submitTimer) clearTimeout(submitTimer);
+  document.getElementById('screen-result').classList.add('hidden');
+  document.getElementById('screen-processing').classList.add('hidden');
+  document.getElementById('screen-camera').classList.remove('hidden');
+  ['gs1','gs2','gs3','gs4'].forEach(id => document.getElementById(id).classList.remove('active-step'));
+  document.getElementById('gs1').classList.add('active-step');
+}
+
+// ===== WARD PROGRESS =====
+function renderWardProgress() {
+  const wards = [
+    { name: 'Ward 12 — Usman Rd', pct: 76 },
+    { name: 'Ward 13 — G.N. Chetty', pct: 53 },
+    { name: 'Ward 14 — K.K. Nagar', pct: 40 },
+    { name: 'Ward 15 — Panagal Park', pct: 60 },
+    { name: 'Ward 16 — Mambalam', pct: 68 },
+  ];
+  const wrap = document.getElementById('ward-progress');
+  wrap.innerHTML = wards.map(w => {
+    const color = w.pct >= 70 ? '#0a7c5c' : w.pct >= 50 ? '#c47d0e' : '#c0392b';
+    return `<div class="prog-row">
+      <div class="prog-name">${w.name}</div>
+      <div class="prog-bar-bg"><div class="prog-bar" style="width:${w.pct}%;background:${color}"></div></div>
+      <div class="prog-pct" style="color:${color}">${w.pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== TAB SWITCHING =====
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+  const tabs = { dashboard: 0, dogs: 1, review: 2, submit: 3, report: 4 };
+  document.querySelectorAll('.nav-tab')[tabs[tab]].classList.add('active');
+}
+
+// ===== INIT =====
+renderMapPins();
+renderZones();
+renderDogTable();
+renderReviewQueue();
+renderWardProgress();
+</script>
+</body>
+</html>
